@@ -8,6 +8,9 @@ namespace Microsoft.Extensions.Logging.Testing
 {
     public class TestSink : ITestSink
     {
+        private ConcurrentQueue<BeginScopeContext> _scopes;
+        private ConcurrentQueue<WriteContext> _writes;
+
         public TestSink(
             Func<WriteContext, bool> writeEnabled = null,
             Func<BeginScopeContext, bool> beginEnabled = null)
@@ -15,23 +18,23 @@ namespace Microsoft.Extensions.Logging.Testing
             WriteEnabled = writeEnabled;
             BeginEnabled = beginEnabled;
 
-            Scopes = new ConcurrentQueue<BeginScopeContext>();
-            Writes = new ConcurrentQueue<WriteContext>();
+            _scopes = new ConcurrentQueue<BeginScopeContext>();
+            _writes = new ConcurrentQueue<WriteContext>();
         }
 
         public Func<WriteContext, bool> WriteEnabled { get; set; }
 
         public Func<BeginScopeContext, bool> BeginEnabled { get; set; }
 
-        public ConcurrentQueue<BeginScopeContext> Scopes { get; set; }
+        public IProducerConsumerCollection<BeginScopeContext> Scopes { get => _scopes; set => _scopes = new ConcurrentQueue<BeginScopeContext>(value); }
 
-        public ConcurrentQueue<WriteContext> Writes { get; set; }
+        public IProducerConsumerCollection<WriteContext> Writes { get => _writes; set => _writes = new ConcurrentQueue<WriteContext>(value); }
 
         public void Write(WriteContext context)
         {
             if (WriteEnabled == null || WriteEnabled(context))
             {
-                Writes.Enqueue(context);
+                _writes.Enqueue(context);
             }
         }
 
@@ -39,7 +42,7 @@ namespace Microsoft.Extensions.Logging.Testing
         {
             if (BeginEnabled == null || BeginEnabled(context))
             {
-                Scopes.Enqueue(context);
+                _scopes.Enqueue(context);
             }
         }
 
